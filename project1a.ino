@@ -11,6 +11,8 @@
 
 Servo rservo;
 Servo gservo;
+Servo eservo;
+
 
 // Grip Servo Variables
 const int gservoPin = 33;
@@ -28,6 +30,10 @@ double error = 0;
 // Raise servo variables
 const int rservoPin = 34; // Pin that raises and lowers the arm
 int rcurrentAngle = 110;
+
+//Extend servo variables
+const int eservoPin = 35;
+int ecurrentAngle = 100; // Forward is lower
 
 // Stepper Motor Variables
 const int INA1 = 29;
@@ -62,6 +68,7 @@ const int eraPin = A9;
 #define mosi 51
 
 const int eepromAddress = 0;
+
 
 //  PWM
 const int MAX_PWM = 255;
@@ -113,8 +120,7 @@ void loop()
 
     if (GamePad.isStartPressed())
     {
-        gservo.detach();
-        rservo.detach();
+        
         while (!GamePad.isSelectPressed())
         {
             Dabble.processInput();
@@ -215,7 +221,6 @@ void loop()
                 analogWrite(rpwmPin, ((dutyPercent / 100) * 255));
                 analogWrite(lpwmPin, ((dutyPercent / 100) * 255));
             }
-
             else
             {
                 analogWrite(rpwmPin, 0);
@@ -226,6 +231,7 @@ void loop()
                 outputR = 0;
                 setpointR = 0;
                 setpointL = 0;
+                
             }
         }
     }
@@ -236,6 +242,7 @@ void loop()
         analogWrite(lpwmPin, (0));
         gservo.attach(gservoPin);
         rservo.attach(rservoPin);
+        bool Pressed = false;
 
         while (!GamePad.isStartPressed())
         {
@@ -258,6 +265,7 @@ void loop()
                 {
                     rcurrentAngle = 180;
                 }
+                
                 rservo.write(rcurrentAngle);
                 Serial.println(rcurrentAngle);
                 delay(50);
@@ -283,6 +291,8 @@ void loop()
 
                 stepCount++;
                 Serial.println(stepCount);
+
+                Pressed = true; 
             }
             else if (GamePad.isLeftPressed())
             {
@@ -305,6 +315,7 @@ void loop()
 
                 stepCount--;
                 Serial.println(stepCount);
+                Pressed = true;
             }
             else if (GamePad.isSquarePressed())
             {
@@ -365,8 +376,7 @@ void loop()
             {
                 analogWrite(lpwmPin, 0);
                 analogWrite(rpwmPin, 0);
-                gservo.detach();
-                rservo.detach();
+                
                 Serial.println("Triangle Pressed!");
                 if (!SD.begin(cardSelect))
                 {
@@ -534,16 +544,25 @@ void loop()
 
                 file.close();
             }
-            double storedCount;
-            EEPROM.get(eepromAddress, storedCount);
-            if (storedCount != stepCount)
-            {
-                EEPROM.put(eepromAddress, stepCount);
-            }
+            
             //Serial.print('storedCount: ');
             //Serial.print(storedCount);
             //Serial.print(" stepCount: ");
             //Serial.println(stepCount);
+            //Serial.println("End of loop");
+            else if( Pressed == true)
+            {
+                Serial.println("trying to save");
+                double storedCount;
+                EEPROM.get(eepromAddress, storedCount);
+                if (storedCount != stepCount)
+                {
+                    EEPROM.put(eepromAddress, stepCount);
+                    Serial.println("SAVED");
+                }
+                 Pressed = false;
+                
+            }
         }
     }
 }
@@ -620,11 +639,12 @@ void initServos_Stepper()
 {
     gservo.attach(gservoPin);
     rservo.attach(rservoPin);
+    eservo.attach(eservoPin);
     gservo.write(gcurrentAngle); // 0 degrees is fully open;
     rservo.write(rcurrentAngle); // 90 degrees is straight up;
+    eservo.write(ecurrentAngle);
     delay(500);
-    gservo.detach();
-    rservo.detach();
+   
 
     DDRA &= 0b11111111;
     PORTA = 0b00000000;
