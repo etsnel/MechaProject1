@@ -13,7 +13,6 @@ Servo rservo;
 Servo gservo;
 Servo eservo;
 
-
 // Grip Servo Variables
 const int gservoPin = 33;
 int grip = 0;
@@ -31,9 +30,9 @@ double error = 0;
 const int rservoPin = 34; // Pin that raises and lowers the arm
 int rcurrentAngle = 110;
 
-//Extend servo variables
+// Extend servo variables
 const int eservoPin = 35;
-int ecurrentAngle = 100; // Forward is lower
+int ecurrentAngle = 90; // Forward is lower
 
 // Stepper Motor Variables
 const int INA1 = 29;
@@ -68,7 +67,6 @@ const int eraPin = A9;
 #define mosi 51
 
 const int eepromAddress = 0;
-
 
 //  PWM
 const int MAX_PWM = 255;
@@ -120,7 +118,7 @@ void loop()
 
     if (GamePad.isStartPressed())
     {
-        
+
         while (!GamePad.isSelectPressed())
         {
             Dabble.processInput();
@@ -231,7 +229,6 @@ void loop()
                 outputR = 0;
                 setpointR = 0;
                 setpointL = 0;
-                
             }
         }
     }
@@ -265,7 +262,7 @@ void loop()
                 {
                     rcurrentAngle = 180;
                 }
-                
+
                 rservo.write(rcurrentAngle);
                 Serial.println(rcurrentAngle);
                 delay(50);
@@ -292,7 +289,7 @@ void loop()
                 stepCount++;
                 Serial.println(stepCount);
 
-                Pressed = true; 
+                Pressed = true;
             }
             else if (GamePad.isLeftPressed())
             {
@@ -376,7 +373,7 @@ void loop()
             {
                 analogWrite(lpwmPin, 0);
                 analogWrite(rpwmPin, 0);
-                
+
                 Serial.println("Triangle Pressed!");
                 if (!SD.begin(cardSelect))
                 {
@@ -395,6 +392,11 @@ void loop()
                 {
                     eradist = 0;
                     eladist = 0;
+                    dutyPercent = 13;
+                    double targetHz = percentToHz(dutyPercent);
+
+                    setpointL = (dutyPercent < 0) ? -targetHz : targetHz;
+                    setpointR = (dutyPercent < 0) ? -targetHz : targetHz;
                     String line = file.readStringUntil('\n');
                     line.trim(); // remove spaces and \r
                     if (line.length() == 0)
@@ -414,6 +416,9 @@ void loop()
                     // Convert number
                     float value = valueStr.toFloat();
 
+                    Serial.println(command);
+                    Serial.println(value);
+
                     if (command[0] == 'F')
                     {
                         // Forward
@@ -422,11 +427,13 @@ void loop()
 
                         while (eladist <= actualCount || eradist <= actualCount)
                         {
+                            motorR.Compute();
+                            motorL.Compute();
                             digitalWrite(rdirPin, HIGH);
                             digitalWrite(ldirPin, HIGH);
 
-                            analogWrite(rpwmPin, (0.15 * 255));
-                            analogWrite(lpwmPin, (0.15 * 255));
+                            analogWrite(rpwmPin, outputR);
+                            analogWrite(lpwmPin, (outputL));
                             Serial.print("ela=");
                             Serial.print(eladist);
                             Serial.print(" era=");
@@ -437,16 +444,22 @@ void loop()
                         revPer = 0;
                         actualCount = 0;
                         actualCount = 0;
+                        inputL = 0;
+                        inputR = 0;
+                        outputL = 0;
+                        outputR = 0;
+                        setpointR = 0;
+                        setpointL = 0;
                         analogWrite(rpwmPin, (0));
                         analogWrite(lpwmPin, (0));
-                        delay(250);
+                        delay(150);
                     }
                     if (command[0] == 'R')
                     {
                         if (command[1] == 'I')
                         {
                             // RIGHT
-                            double turnRdistance = (value * PI / 180.0) * 5.6;           // theta in radians x radius from one wheel to the other
+                            double turnRdistance = (value * PI / 180.0) * 5.75;          // theta in radians x radius from one wheel to the other
                             double numRcounts = countsPerRev * turnRdistance / (6 * PI); // need counts per revolution
 
                             while (eladist <= numRcounts || eradist <= numRcounts)
@@ -467,10 +480,11 @@ void loop()
                             eradist = 0;
                             turnRdistance = 0;
                             numRcounts = 0;
+                            
 
                             analogWrite(rpwmPin, (0));
                             analogWrite(lpwmPin, (0));
-                            delay(250);
+                            delay(150);
                         }
                         if (command[1] == 'E')
                         {
@@ -480,11 +494,13 @@ void loop()
 
                             while (eladist <= actualCount || eradist <= actualCount)
                             {
+                                motorR.Compute();
+                                motorL.Compute();
                                 digitalWrite(rdirPin, LOW);
                                 digitalWrite(ldirPin, LOW);
 
-                                analogWrite(rpwmPin, (0.15 * 255));
-                                analogWrite(lpwmPin, (0.15 * 255));
+                                analogWrite(rpwmPin, outputR);
+                                analogWrite(lpwmPin, outputL);
                                 Serial.print("ela=");
                                 Serial.print(eladist);
                                 Serial.print(" era=");
@@ -497,9 +513,15 @@ void loop()
                             revPer = 0;
                             actualCount = 0;
                             actualCount = 0;
+                            inputL = 0;
+                            inputR = 0;
+                            outputL = 0;
+                            outputR = 0;
+                            setpointR = 0;
+                            setpointL = 0;
                             analogWrite(rpwmPin, (0));
                             analogWrite(lpwmPin, (0));
-                            delay(250);
+                            delay(150);
                         }
                     }
                     if (command[0] == 'P')
@@ -512,7 +534,7 @@ void loop()
                     if (command[0] == 'L')
                     {
                         // LEFT
-                        double turnRdistance = (value * PI / 180.0) * 6.1;           // theta in radians x radius from one wheel to the other
+                        double turnRdistance = (value * PI / 180.0) * 5.75;           // theta in radians x radius from one wheel to the other
                         double numRcounts = countsPerRev * turnRdistance / (6 * PI); // need counts per revolution
 
                         while (eladist <= numRcounts || eradist <= numRcounts)
@@ -534,7 +556,7 @@ void loop()
 
                         analogWrite(rpwmPin, (0));
                         analogWrite(lpwmPin, (0));
-                        delay(250);
+                        delay(150);
                     }
                 }
                 analogWrite(rpwmPin, (0));
@@ -543,14 +565,15 @@ void loop()
                 rservo.attach(rservoPin);
 
                 file.close();
+                dutyPercent = 50;
             }
-            
-            //Serial.print('storedCount: ');
-            //Serial.print(storedCount);
-            //Serial.print(" stepCount: ");
-            //Serial.println(stepCount);
-            //Serial.println("End of loop");
-            else if( Pressed == true)
+
+            // Serial.print('storedCount: ');
+            // Serial.print(storedCount);
+            // Serial.print(" stepCount: ");
+            // Serial.println(stepCount);
+            // Serial.println("End of loop");
+            else if (Pressed == true)
             {
                 Serial.println("trying to save");
                 double storedCount;
@@ -560,8 +583,7 @@ void loop()
                     EEPROM.put(eepromAddress, stepCount);
                     Serial.println("SAVED");
                 }
-                 Pressed = false;
-                
+                Pressed = false;
             }
         }
     }
@@ -644,7 +666,6 @@ void initServos_Stepper()
     rservo.write(rcurrentAngle); // 90 degrees is straight up;
     eservo.write(ecurrentAngle);
     delay(500);
-   
 
     DDRA &= 0b11111111;
     PORTA = 0b00000000;
@@ -657,9 +678,9 @@ void Grip()
     Serial.println("Gripped!");
     while (grip == 1)
     {
-        gservo.write(((int)calcAngle+10));
-        gcurrentAngle = ((int)calcAngle+10);
-        calcAngle = ((int)calcAngle+10);
+        gservo.write(((int)calcAngle + 10));
+        gcurrentAngle = ((int)calcAngle + 10);
+        calcAngle = ((int)calcAngle + 10);
         Serial.println(gcurrentAngle);
         Serial.println("raising arm!");
         delay(500);
@@ -669,14 +690,13 @@ void Grip()
           rcurrentAngle -= 2;
           rservo.write(rcurrentAngle);
           //Serial.println(rcurrentAngle);
-          delay(50);  
+          delay(50);
         }
         */
 
         rservo.write(120);
         rcurrentAngle = 120;
-        
-        
+
         delay(500);
         grip = 0;
     }
