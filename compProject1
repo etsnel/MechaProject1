@@ -28,7 +28,7 @@ int rcurrentAngle = 110;
 
 // Extend servo variables
 const int eservoPin = 35;
-int ecurrentAngle = 90; // Forward is lower
+int ecurrentAngle = 180; // Forward is lower
 
 // Stepper Motor Variables
 const int INA1 = 29;
@@ -130,14 +130,37 @@ void loop()
                     delay(100);
                     continue;
                 }
-                while (rcurrentAngle <= 180)
+                else if (rcurrentAngle == 180)
                 {
-                    rcurrentAngle += 2;
-                    delay(10);
+                    while (rcurrentAngle >= 110)
+                    {
+
+                        rcurrentAngle -= 2;
+                        delay(10);
+                        rservo.write(rcurrentAngle);
+
+                        Serial.println("step");
+                    }
+                    rcurrentAngle = 110;
                     rservo.write(rcurrentAngle);
                 }
-                rcurrentAngle = 180;
-                delay(250);
+                else
+                {
+
+                    while (rcurrentAngle <= 180)
+                    {
+
+                        rcurrentAngle += 2;
+                        delay(10);
+                        rservo.write(rcurrentAngle);
+
+                        Serial.println("step");
+                    }
+                    rcurrentAngle = 180;
+
+                    rservo.write(rcurrentAngle);
+                    delay(250);
+                }
             }
             if (GamePad.isSquarePressed())
             {
@@ -279,10 +302,10 @@ void loop()
             Dabble.processInput();
             if (GamePad.isDownPressed())
             {
-                rcurrentAngle -= 2;
-                if (rcurrentAngle < 80)
+                rcurrentAngle -= 1;
+                if (rcurrentAngle < 110)
                 {
-                    rcurrentAngle = 80;
+                    rcurrentAngle = 110;
                 }
                 rservo.write(rcurrentAngle);
                 Serial.println(rcurrentAngle);
@@ -290,7 +313,7 @@ void loop()
             }
             else if (GamePad.isUpPressed())
             {
-                rcurrentAngle += 2;
+                rcurrentAngle += 1;
                 if (rcurrentAngle > 180)
                 {
                     rcurrentAngle = 180;
@@ -298,7 +321,7 @@ void loop()
 
                 rservo.write(rcurrentAngle);
                 Serial.println(rcurrentAngle);
-                delay(50);
+                delay(10);
             }
             else if (GamePad.isRightPressed())
             {
