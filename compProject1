@@ -10,7 +10,7 @@ Servo gservo;
 Servo eservo;
 
 // Grip Servo Variables
-const int gservoPin = 33;
+const int gservoPin = 38;
 int grip = 0;
 int avalue = 0;
 double voltage = 0;
@@ -122,12 +122,13 @@ void loop()
             }
             if (GamePad.isCirclePressed())
             {
-                if(gcurrentAngle > 0)
+                if (gcurrentAngle > 0)
                 {
                     gcurrentAngle = 0;
+                    calcAngle = 0;
                     gservo.write(gcurrentAngle);
                     delay(100);
-                    return;
+                    continue;
                 }
                 while (rcurrentAngle <= 180)
                 {
@@ -141,24 +142,37 @@ void loop()
             if (GamePad.isSquarePressed())
             {
 
-                while (abs(error) < 12 && voltage < 0.57)
+                while (true)
                 {
-                    avalue = analogRead(feedbackPin);
-                    voltage = (avalue * 5) / 1023.0;
-                    calcAngle = (voltage / slope) - (intercept / slope);
-                    error = ((int)calcAngle - gcurrentAngle);
                     gcurrentAngle += 2;
 
                     if (gcurrentAngle > 180)
                     {
                         gcurrentAngle = 180;
-                        return;
+                        break;
                     }
                     gservo.write(gcurrentAngle);
-                }
+                    Serial.print(gcurrentAngle);
+                    Serial.print(", ");
+                    avalue = analogRead(feedbackPin);
+                    voltage = (avalue * 5) / 1023.0;
+                    calcAngle = (voltage / slope) - (intercept / slope);
+                    error = ((int)calcAngle - gcurrentAngle);
+                    Serial.print(calcAngle);
+                    Serial.print(", ");
 
-                Grip();
-                delay(10);
+                    Serial.print(error);
+                    Serial.print(", ");
+
+                    Serial.print(", ");
+                    Serial.println(voltage);
+                    if (abs(error) > 12 && voltage > 0.57)
+                    {
+                        Grip();
+                        break;
+                    }
+                    delay(10);
+                }
             }
             double targetHz = percentToHz(dutyPercent);
 
@@ -488,9 +502,10 @@ void Grip()
         rservo.write(120);
         rcurrentAngle = 120;
 
-        delay(500);
-        gcurrentAngle = ((int)calcAngle - 3);
-        calcAngle = ((int)calcAngle - 3);
+        delay(1000);
+        gcurrentAngle = ((int)calcAngle - 10);
+        calcAngle = ((int)calcAngle - 10);
+        gservo.write(gcurrentAngle);
         grip = 0;
     }
 }
